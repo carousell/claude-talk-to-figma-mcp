@@ -3033,10 +3033,20 @@ async function setTextStyleId(params) {
       console.log(`Fetching text styles to validate style ID: ${textStyleId}`);
       const textStyles = await figma.getLocalTextStylesAsync();
       // Look for the style by ID or by Key (LLMs often pass the key which is a cleaner hex string)
-      const foundStyle = textStyles.find(style => style.id === textStyleId || style.key === textStyleId);
+      let foundStyle = textStyles.find(style => style.id === textStyleId || style.key === textStyleId);
 
       if (!foundStyle) {
-        throw new Error(`Text style with ID "${textStyleId}" not found. Make sure the style exists in your local styles.`);
+        // Fall back to importing from a remote library by key
+        console.log(`Style not found locally, attempting to import remote style by key: ${textStyleId}`);
+        try {
+          foundStyle = await figma.importStyleByKeyAsync(textStyleId);
+        } catch (importError) {
+          throw new Error(`Text style with ID/key "${textStyleId}" not found locally or in remote libraries. Make sure the style key is correct and the library is enabled.`);
+        }
+        if (!foundStyle) {
+          throw new Error(`Text style with ID/key "${textStyleId}" not found locally or in remote libraries.`);
+        }
+        console.log(`Remote text style "${foundStyle.name}" imported successfully.`);
       }
 
       // Ensure we use the full Figma ID for applying the style
