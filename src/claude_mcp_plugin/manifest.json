@@ -10,13 +10,9 @@
   ],
   "permissions": ["teamlibrary"],
   "networkAccess": {
-    "allowedDomains": [
-      "https://google.com"
-    ],
-    "devAllowedDomains": [
-      "http://localhost:3055",
-      "ws://localhost:3055"
-    ]
+    "allowedDomains": ["*"],
+    "devAllowedDomains": ["*"],
+    "reasoning": "Plugin can enable a connection to a user-configured WebSocket server, so the domain cannot be known in advance."
   },
   "documentAccess": "dynamic-page",
   "enableProposedApi": true,

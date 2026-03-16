@@ -60,6 +60,14 @@
         flex-direction: column;
         gap: 16px;
       }
+      .mcp-plugin__url-truncated {
+        display: inline-block;
+        max-width: 160px;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        vertical-align: bottom;
+      }
       .mcp-plugin__connection-status {
         padding: 8px;
         border-radius: 4px;
@@ -68,6 +76,25 @@
       }
       .mcp-plugin__content-activity {
         display: flex;
+        gap: 8px;
+        align-items: center;
+      }
+      .mcp-plugin__server-input {
+        flex: 1;
+        height: 32px;
+        box-sizing: border-box;
+        padding: 0 8px;
+        border-radius: 4px;
+        border: 1px solid #fff;
+        font-size: 12px;
+        background-color: #fff;
+        color: #400B55;
+        min-width: 0;
+      }
+      .dark .mcp-plugin__server-input {
+        background-color: #3c3c3c;
+        color: #fff;
+        border-color: #2c2c2c;
       }
       .mcp-plugin__connection-status.connected {
         background: #D8FFBB;
@@ -129,7 +156,6 @@
         font-size: 12px;
         cursor: pointer;
         transition: ease 0.2s;
-        margin-left: auto;
       }
       .dark .mcp-plugin__button {
         border-color: #5467F7;
@@ -249,6 +275,7 @@
               <div id="progress-percentage">0%</div>
             </div>
           </div>
+          <input id="server-input" class="mcp-plugin__server-input" type="text" value="3055" placeholder="3055 or ws://…" />
           <button id="btn-connect" class="mcp-plugin__button mcp-plugin__button--primary">Connect</button>
           <button id="btn-disconnect" class="mcp-plugin__button mcp-plugin__button--secondary" disabled>
             Disconnect
@@ -276,6 +303,7 @@
           this.ui = {
             connectBtn: document.getElementById("btn-connect"),
             disconnectBtn: document.getElementById("btn-disconnect"),
+            serverInput: document.getElementById("server-input"),
             connectionStatus: document.getElementById("connection-status"),
             progressContainer: document.getElementById("progress-container"),
             progressBar: document.getElementById("progress-bar"),
@@ -331,18 +359,22 @@
         /**
          * Connect to WebSocket server
          */
-        async connect(port = 3055) {
+        async connect() {
           try {
             if (this.state.connected && this.state.socket) {
               this.updateStatus(true, "Already connected to server");
               return;
             }
 
+            const val = this.ui.serverInput.value.trim() || "3055";
+            const isPort = /^\d+$/.test(val);
+            const url = isPort ? `ws://localhost:${val}` : val;
+
             this.updateStatus(false, "Connecting...");
             this.ui.connectionStatus.className = "mcp-plugin__connection-status info";
-            
-            this.state.serverPort = port;
-            this.state.socket = new WebSocket(`ws://localhost:${port}`);
+
+            this.state.serverPort = isPort ? parseInt(val) : null;
+            this.state.socket = new WebSocket(url);
 
             this.state.socket.onopen = () => {
               const channelName = this.generateChannelName();
@@ -368,14 +400,14 @@
                     const channelName = data.channel;
                     this.updateStatus(
                       true,
-                      `Connected on port ${port}!<br>Copy the channel ID: <span class="mcp-plugin__channel-name" title="Click to copy">${channelName}</span>`
+                      `Connected to <span class="mcp-plugin__url-truncated" title="${url}">${url}</span><br>Copy the channel ID: <span class="mcp-plugin__channel-name" title="Click to copy">${channelName}</span>`
                     );
 
                     parent.postMessage(
                       {
                         pluginMessage: {
                           type: "notify",
-                          message: `Connected on port ${port}. In channel: ${channelName}`,
+                          message: `Connected to ${url}. In channel: ${channelName}`,
                         },
                       },
                       "*"
